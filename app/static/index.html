@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spam/Ham Checker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --container-bg: #1e293b;
+            --text-color: #f8fafc;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --input-bg: #334155;
+            --border: #475569;
+            --spam-color: #ef4444;
+            --ham-color: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+        }
+
+        .container {
+            background-color: var(--container-bg);
+            padding: 2.5rem;
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            width: 100%;
+            max-width: 500px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .container:hover {
+            transform: translateY(-5px);
+        }
+
+        h1 {
+            font-weight: 800;
+            margin-top: 0;
+            margin-bottom: 0.5rem;
+            text-align: center;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            text-align: center;
+            color: #94a3b8;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        textarea {
+            width: 100%;
+            height: 130px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border);
+            color: var(--text-color);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            font-size: 1rem;
+            font-family: inherit;
+            resize: none;
+            box-sizing: border-box;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        textarea::placeholder {
+            color: #94a3b8;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2);
+            background-color: #273449;
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border: none;
+            padding: 1.1rem;
+            border-radius: 0.75rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        #result {
+            margin-top: 1.5rem;
+            padding: 1.25rem;
+            border-radius: 0.75rem;
+            text-align: center;
+            font-weight: 600;
+            font-size: 1.1rem;
+            opacity: 0;
+            transform: translateY(15px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            display: none;
+        }
+
+        #result.show {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
+
+        .spam {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.1);
+        }
+
+        .ham {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.1);
+        }
+
+        .loading {
+            opacity: 0.8;
+            pointer-events: none;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>AI 스팸 분류기</h1>
+        <p class="subtitle">메시지가 일반 대화인지 스팸인지 확인해보세요.</p>
+        <textarea id="messageInput" placeholder="분석할 메시지를 여기에 입력하세요...&#10;(예: 당일 대출 승인 무조건 해드립니다)"></textarea>
+        <button id="analyzeBtn">메시지 분석하기</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const messageInput = document.getElementById('messageInput');
+        const resultDiv = document.getElementById('result');
+
+        analyzeBtn.addEventListener('click', async () => {
+            const text = messageInput.value.trim();
+            if (!text) {
+                messageInput.focus();
+                return;
+            }
+
+            // Set loading state
+            analyzeBtn.classList.add('loading');
+            analyzeBtn.innerHTML = '<span class="spinner"></span>분석 중...';
+            
+            // Hide result briefly if it was already showing
+            resultDiv.classList.remove('show');
+            
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text })
+                });
+
+                if (!response.ok) throw new Error('API 오류');
+
+                const data = await response.json();
+                
+                // Introduce a tiny delay for the micro-animation feeling
+                setTimeout(() => {
+                    resultDiv.className = ''; // Reset classes
+                    
+                    if (data.prediction === 'spam') {
+                        resultDiv.textContent = `🚨 이 메시지는 스팸입니다 (확률: ${(data.probability * 100).toFixed(1)}%)`;
+                        resultDiv.classList.add('spam');
+                        
+                    } else {
+                        resultDiv.textContent = `✅ 이 메시지는 스팸이 아닙니다 (확률: ${(data.probability * 100).toFixed(1)}%)`;
+                        resultDiv.classList.add('ham');
+                    }
+                    
+                    // Trigger animation
+                    requestAnimationFrame(() => {
+                        resultDiv.classList.add('show');
+                    });
+                    
+                    // Reset button
+                    analyzeBtn.classList.remove('loading');
+                    analyzeBtn.textContent = '메시지 분석하기';
+                }, 400);
+
+            } catch (error) {
+                resultDiv.className = '';
+                resultDiv.textContent = '통신 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+                resultDiv.classList.add('spam', 'show');
+                
+                analyzeBtn.classList.remove('loading');
+                analyzeBtn.textContent = '메시지 분석하기';
+            }
+        });
+    </script>
+</body>
+</html>
