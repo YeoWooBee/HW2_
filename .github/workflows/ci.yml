@@ -30,8 +30,8 @@ jobs:
         
       - name: Run tests
         env:
-          PYTHONPATH: .
-        run: pytest tests/
+          PYTHONPATH: ${{ github.workspace }}
+        run: python -m pytest tests/
 
   build-and-push:
     needs: test
